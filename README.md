@@ -1,2 +1,11 @@
 # RV32IMCZicsr-microcontroller
 32-bit RISC-V Microcontroller with Event Sequence Counting Programmable/Flexible Performance Monitoring Unit
+
+Standard RISC-V hardware performance monitors, built on the Zicntr and Zihpm extensions, count events independently; every mhpmcounterX tracks whichever single event its mhpmeventX currently selects, with no hardware notion of order or timing relative to any other counter. Thus, whenever the actual signature of interest is a relationship between two events, such as a cache miss occurring within a bounded number of cycles after a load-use hazard, a standard PMU cannot detect or flag it in hardware. Identifying such relationships today requires periodically polling multiple independent counters in software and correlating the samples off-chip, which adds sampling latency, consumes CPU cycles that could otherwise execute the workload, and can miss event chains that occur between the polling intervals themselves.
+
+<img width="4620" height="3876" alt="mcu_fnbd_whitebg" src="https://github.com/user-attachments/assets/e137a540-507b-477b-b968-8df0dd8168ca" />
+
+The proposed system integrates the RV32IMC_Zicsr core, the PPMU, on-chip, memory, a PLIC-based interrupt subsystem, Clock Management Unit (CMU), and MMIO peripherals around an AHB/APB interconnect. Instruction and data traffic from the 5-stage pipeline is carried over the interconnect to memory, while hardware event signals are tapped at key pipeline and bus interfaces. Firmware configures the PPMU entirely through the standard CSR interface; writing mhpmeventX in its ordinary Zihpm-compatible form selects a single event for counter X, while writing it in the extended bit-field form arms counter X's ESC FSM with a trigger-event ID, a qualifying-event ID, and a window of N cycles. When an armed counter overflows, the PPMU raises a request to the PLIC, which, subject to its configured priority and per-context threshold, asserts a machine-external interrupt so firmware can service the overflow without continuously polling mhpmcounterX.
+
+<img width="858" height="1654" alt="mcu_floch_updated" src="https://github.com/user-attachments/assets/a1543ef4-c336-4dfc-af46-fc73676a6170" />
+
